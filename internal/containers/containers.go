@@ -67,17 +67,17 @@ func (c *Container) GetName() string {
 }
 
 func (c *Container) GetPort() (string, bool) {
-	// If Label is defined, get the container port
-	if customContainerPort, ok := c.Info.Config.Labels[LabelContainerPort]; ok {
+	// If Label is defined and not empty, get the label value
+	if customContainerPort, ok := c.Info.Config.Labels[LabelContainerPort]; ok && customContainerPort != "" {
 		return customContainerPort, true
 	}
 
-	// Otherwise, retrieve the PortMap object and find the first mapped port
+	// Otherwise, retrieve the PortMap object and find the first non-empty mapped port
 	for internalBind := range c.Info.NetworkSettings.Ports {
 		if len(internalBind) > 0 {
 			// Value will look like "80/tcp", we want "80"
 			internalPort := strings.Split(string(internalBind), "/")
-			if len(internalPort) > 0 {
+			if len(internalPort) > 0 && internalPort[0] != "" {
 				return internalPort[0], true
 			}
 		}
