@@ -173,9 +173,20 @@ func parseTargetSegment(segment string, config *PortConfig) error {
 }
 
 func parseRedirectTarget(segment string, config *PortConfig) error {
-	targetURL, err := url.Parse(segment)
-	if err != nil || targetURL.Scheme == "" || targetURL.Host == "" {
-		return fmt.Errorf("invalid target URL: %v", segment)
+	var targetURL *url.URL
+	var err error
+
+	// Handle scheme-only redirects (e.g., "->https" for HTTP to HTTPS upgrade)
+	if segment == "http" || segment == "https" {
+		// Create a URL with only the scheme set
+		// The proxy handler will use this to upgrade the incoming request's scheme
+		targetURL = &url.URL{Scheme: segment}
+	} else {
+		// Parse as a full URL for traditional redirects
+		targetURL, err = url.Parse(segment)
+		if err != nil || targetURL.Scheme == "" || targetURL.Host == "" {
+			return fmt.Errorf("invalid target URL: %v", segment)
+		}
 	}
 
 	config.AddTarget(targetURL)
