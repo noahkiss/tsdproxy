@@ -92,7 +92,21 @@ func newPortRedirect(ctx context.Context, pconfig model.PortConfig, log zerolog.
 	redirectHTTPServer := &http.Server{
 		ReadHeaderTimeout: core.ReadHeaderTimeout,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, pconfig.GetFirstTarget().String(), http.StatusMovedPermanently)
+			target := pconfig.GetFirstTarget()
+
+			// Check if this is a scheme-only redirect (e.g., "->https")
+			// In this case, the URL will only have a Scheme and no Host
+			var redirectURL string
+			if target.Host == "" && target.Scheme != "" {
+				// Scheme-only redirect: upgrade the current request's URL to the new scheme
+				// Preserve the original host and path
+				redirectURL = target.Scheme + "://" + r.Host + r.RequestURI
+			} else {
+				// Full URL redirect: use the target URL as-is
+				redirectURL = target.String()
+			}
+
+			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 		}),
 	}
 
